@@ -32,3 +32,9 @@ jobs:
             exit 1
           fi
           echo "embedded-source check behaved as expected"
+      - name: Verify --fix round-trips to a clean file
+        run: |
+          cp examples/ar-dirty.json /tmp/fixcheck.json
+          arabic-l10n-qa /tmp/fixcheck.json --fix --write
+          arabic-l10n-qa /tmp/fixcheck.json --strict
+          echo "auto-fix produced a clean file"
