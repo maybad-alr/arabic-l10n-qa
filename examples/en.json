@@ -1,0 +1,12 @@
+{
+  "app.title": "Download your file",
+  "app.greeting": "Hello {name}, welcome back!",
+  "app.terms": "Read our <b>terms</b> at https://example.com/terms",
+  "app.count": "You have %d new messages",
+  "app.help": "Need help? Contact support@example.com",
+  "app.brand": "LocalizationHub",
+  "app.upload": "Upload a file",
+  "app.notfound": "Nothing found here...",
+  "app.loading": "Loading, please wait",
+  "app.ok": "OK"
+}

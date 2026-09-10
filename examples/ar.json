@@ -1,0 +1,12 @@
+{
+  "app.title": "نزّل ملفك",
+  "app.greeting": "مرحبًا {name}, أهلاً بعودتك!",
+  "app.terms": "اقرأ <b>الشروط</b> على https://example.com/terms",
+  "app.count": "لديك %d رسائل جديدة",
+  "app.help": "هل تحتاج مساعدة؟ راسل support@example.com",
+  "app.brand": "LocalizationHub",
+  "app.upload": "ارفع ملفًا",
+  "app.notfound": "لا يوجد شيء هنا...",
+  "app.loading": "جارٍ التحميل، انتظر من فضلك",
+  "app.ok": "حسنًا"
+}
