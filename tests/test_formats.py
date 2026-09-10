@@ -16,6 +16,13 @@ from arabic_l10n_qa.formats import (  # noqa: E402
     supported_extensions,
 )
 
+try:
+    import yaml  # noqa: F401
+
+    HAS_YAML = True
+except ImportError:
+    HAS_YAML = False
+
 
 class JsonTests(unittest.TestCase):
     def test_nested_flatten(self):
@@ -84,6 +91,22 @@ class CsvTests(unittest.TestCase):
 
     def test_no_header(self):
         self.assertEqual(parse_csv("app.title,العنوان\n"), {"app.title": "العنوان"})
+
+
+@unittest.skipUnless(HAS_YAML, "PyYAML is not installed")
+class YamlTests(unittest.TestCase):
+    """YAML support is optional, so these tests skip without PyYAML."""
+
+    def test_nested_keys_are_flattened(self):
+        from arabic_l10n_qa.formats import parse_yaml
+
+        data = parse_yaml("app:\n  title: عنوان\n  ok: حسنًا\n")
+        self.assertEqual(data, {"app.title": "عنوان", "app.ok": "حسنًا"})
+
+    def test_empty_document_is_empty_mapping(self):
+        from arabic_l10n_qa.formats import parse_yaml
+
+        self.assertEqual(parse_yaml(""), {})
 
 
 class DispatchTests(unittest.TestCase):
