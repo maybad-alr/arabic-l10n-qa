@@ -25,3 +25,10 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Self-check the examples
         run: arabic-l10n-qa examples/ar.json --source examples/en.json --format github
+      - name: Verify gettext embedded-source detection
+        run: |
+          if arabic-l10n-qa examples/ar.po --format github; then
+            echo "::error::expected a non-zero exit for the deliberately broken .po example"
+            exit 1
+          fi
+          echo "embedded-source check behaved as expected"

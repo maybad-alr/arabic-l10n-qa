@@ -20,5 +20,8 @@ classifiers = [
 [project.scripts]
 arabic-l10n-qa = "arabic_l10n_qa.cli:main"
 
+[project.optional-dependencies]
+yaml = ["PyYAML>=6"]
+
 [tool.setuptools.packages.find]
 where = ["src"]

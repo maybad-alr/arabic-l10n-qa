@@ -1,35 +1,54 @@
-"""Load and flatten localization files."""
+"""Load and flatten localization files.
+
+This module is the compatibility surface for the format parsers in
+``formats``. New code should use :func:`load_any_file`, which dispatches on the
+file extension instead of assuming JSON.
+"""
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Iterator, Tuple
+from typing import Any, Dict
 
+from .formats import (
+    PARSERS,
+    UnsupportedFormatError,
+    flatten,
+    load_file,
+    load_file_with_source,
+    parse_json,
+    supported_extensions,
+)
 
-def flatten(data: Any, prefix: str = "") -> Iterator[Tuple[str, Any]]:
-    """Yield ``(dotted.key, value)`` pairs from a nested dict.
-
-    Lists are flattened by index, e.g. ``items.0.title``. Non-dict scalars are
-    yielded as-is.
-    """
-    if isinstance(data, dict):
-        for key, value in data.items():
-            child = f"{prefix}.{key}" if prefix else str(key)
-            yield from flatten(value, child)
-    elif isinstance(data, list):
-        for index, value in enumerate(data):
-            child = f"{prefix}.{index}" if prefix else str(index)
-            yield from flatten(value, child)
-    else:
-        yield prefix, data
+__all__ = [
+    "PARSERS",
+    "UnsupportedFormatError",
+    "flatten",
+    "load_any_file",
+    "load_file",
+    "load_file_with_source",
+    "load_json_file",
+    "load_pair_file",
+    "load_mapping",
+    "supported_extensions",
+]
 
 
 def load_json_file(path: str | Path) -> Dict[str, Any]:
-    """Load a JSON (or JSONC-ish) localization file into a flat dict."""
+    """Load a JSON localization file into a flat dict."""
     text = Path(path).read_text(encoding="utf-8-sig")
-    data = json.loads(text)
-    return {key: value for key, value in flatten(data)}
+    return parse_json(text)
+
+
+def load_any_file(path: str | Path) -> Dict[str, Any]:
+    """Load any supported localization file into a flat dict."""
+    return load_file(path)
+
+
+def load_pair_file(path: str | Path):
+    """Load a file as ``(source, target)``, using embedded source when present."""
+    return load_file_with_source(path)
 
 
 def load_mapping(mapping: Dict[str, Any]) -> Dict[str, Any]:

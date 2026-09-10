@@ -1,0 +1,50 @@
+name: "Arabic Localization QA"
+description: "Lint Arabic localization files for broken placeholders, HTML, bidi controls, punctuation and key drift."
+author: "maybad-alr"
+
+branding:
+  icon: "check-circle"
+  color: "purple"
+
+inputs:
+  target:
+    description: "Path to the Arabic localization file to lint."
+    required: true
+  source:
+    description: "Optional source-language file to compare against."
+    required: false
+    default: ""
+  strict:
+    description: "Fail the build on warnings and info as well as errors."
+    required: false
+    default: "false"
+  format:
+    description: "Report format: text, json or github."
+    required: false
+    default: "github"
+
+outputs:
+  issues:
+    description: "Number of reported issues."
+    value: ${{ steps.lint.outputs.issues }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install arabic-l10n-qa
+      shell: bash
+      run: python -m pip install --quiet "${{ github.action_path }}"
+
+    - name: Lint Arabic localization
+      id: lint
+      shell: bash
+      run: |
+        set -o pipefail
+        args=("${{ inputs.target }}" --format "${{ inputs.format }}")
+        if [ -n "${{ inputs.source }}" ]; then
+          args+=(-s "${{ inputs.source }}")
+        fi
+        if [ "${{ inputs.strict }}" = "true" ]; then
+          args+=(--strict)
+        fi
+        arabic-l10n-qa "${args[@]}"

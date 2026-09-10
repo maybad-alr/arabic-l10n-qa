@@ -1,13 +1,14 @@
 # arabic-l10n-qa
 
-A small, dependency-free linter for **Arabic localization files**. It catches the
+A small, dependency-free linter for **Arabic localization files** in JSON,
+gettext PO, iOS `.strings`, Java `.properties`, CSV/TSV and YAML. It catches the
 mistakes that translators and machine translation pipelines make most often:
 broken placeholders, dropped HTML tags, ASCII punctuation inside Arabic prose,
 embedded bidi control characters, mixed Arabic/Latin text with no space, and
 key drift between the source and the Arabic file.
 
-It runs offline, in CI, or as a pre-commit hook. No network, no API keys, no
-external packages.
+It runs offline, in CI, or as a pre-commit hook. No network, no API keys, and no
+required external packages (YAML support uses `PyYAML` only if you install it).
 
 ## Why
 
@@ -73,6 +74,34 @@ Brand names and symbols that legitimately stay untranslated:
 arabic-l10n-qa ar.json -s en.json --ignore-untranslated LocalizationHub --ignore-untranslated OK
 ```
 
+Lint a gettext catalog directly — no second file needed, because the English
+source is already in the `msgid`:
+
+```bash
+arabic-l10n-qa examples/ar.po
+```
+
+```text
+ERROR (1)
+  Read our <b>terms</b> at https://example.com/terms: [html.mismatch] html tags differ: source=[('b', 2)] target=[]
+
+Summary: 1 error(s), 0 warning(s), 0 info
+```
+
+## Formats
+
+| Extension | Format | Source comparison |
+| --- | --- | --- |
+| `.json`, `.jsonc` | JSON (nested keys are flattened to `a.b.c`) | via `--source` |
+| `.po`, `.pot` | gettext | **embedded** in `msgid`, no `--source` needed |
+| `.strings`, `.stringsdict` | iOS / macOS | via `--source` |
+| `.properties` | Java | via `--source` |
+| `.csv`, `.tsv` | two-column `key,value` | via `--source` |
+| `.yaml`, `.yml` | YAML (requires `pip install PyYAML`) | via `--source` |
+
+The format is chosen from the file extension. Passing an unsupported type exits
+with code `2` and lists what is supported.
+
 ## Checks
 
 | Code | Severity | What it finds |
@@ -114,6 +143,25 @@ checks run, so the linter does not false-positive on `%s` or on a URL.
     python -m pip install .
     arabic-l10n-qa locales/ar.json -s locales/en.json -f github --strict
 ```
+
+## GitHub Action
+
+Add the linter to any workflow without a setup step:
+
+```yaml
+- uses: maybad-alr/arabic-l10n-qa@main
+  with:
+    target: locales/ar.json
+    source: locales/en.json
+    strict: "true"
+```
+
+| Input | Required | Default | Description |
+| --- | --- | --- | --- |
+| `target` | yes | — | Arabic localization file to lint |
+| `source` | no | `""` | Source-language file to compare against |
+| `strict` | no | `false` | Fail on warnings and info as well as errors |
+| `format` | no | `github` | `text`, `json` or `github` |
 
 ## Status
 

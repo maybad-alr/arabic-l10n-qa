@@ -1,0 +1,20 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: ar\n"
+
+#: src/App.tsx:42
+msgid "Welcome back, {name}"
+msgstr "أهلاً بعودتك {name}"
+
+#: src/App.tsx:57
+msgid "Read our <b>terms</b> at https://example.com/terms"
+msgstr "اقرأ الشروط على https://example.com/terms"
+
+#: src/App.tsx:63
+msgid "You have %d unread messages"
+msgstr "لديك %d رسائل غير مقروءة"
+
+#: src/App.tsx:71
+msgid "Loading, please wait"
+msgstr "جارٍ التحميل، انتظر من فضلك"
