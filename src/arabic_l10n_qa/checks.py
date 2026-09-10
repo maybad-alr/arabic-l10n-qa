@@ -55,6 +55,12 @@ class CheckOptions:
     check_mixed_script_spacing: bool = True
     check_tatweel: bool = True
     check_ellipsis: bool = True
+    check_digits: bool = True
+    check_punctuation_spacing: bool = True
+    check_brackets: bool = True
+    check_joiners: bool = True
+    check_repeated_words: bool = True
+    check_double_space: bool = True
     # Values that are identical in source and target but are legitimately
     # untranslated (brand names, code, symbols).
     ignore_untranslated_values: Sequence[str] = field(default_factory=tuple)
@@ -99,12 +105,39 @@ BIDI_CONTROL_CHARS = {
     "\u200F": "RLM",
 }
 
-# Punctuation that is usually wrong inside Arabic prose: ASCII char -> (name, codepoint).
+# Punctuation that is usually wrong inside Arabic prose.
+# char -> (name, codepoint, detection pattern). A comma between digits ("1,000")
+# is a thousands separator rather than punctuation, so it is not matched.
 WRONG_PUNCTUATION = {
-    ",": ("Arabic comma", "U+060C"),
-    ";": ("Arabic semicolon", "U+061B"),
-    "?": ("Arabic question mark", "U+061F"),
+    ",": ("Arabic comma", "U+060C", re.compile(r"(?<!\d),(?!\d)")),
+    ";": ("Arabic semicolon", "U+061B", re.compile(";")),
+    "?": ("Arabic question mark", "U+061F", re.compile(r"\?")),
 }
+
+# Arabic punctuation binds to the preceding word, unlike its ASCII counterparts.
+ARABIC_PUNCTUATION_CHARS = "\u060C\u061B\u061F"
+
+# Arabic-Indic (٠-٩) versus Western (0-9) digits. Mixing both styles in one
+# string is almost always an accident rather than a deliberate choice.
+ARABIC_INDIC_DIGITS = "\u0660\u0661\u0662\u0663\u0664\u0665\u0666\u0667\u0668\u0669"
+ASCII_DIGITS = "0123456789"
+
+# Zero-width joiners leak in from copy-pasted text and break search/matching.
+JOINER_CHARS = {
+    "\u200D": "ZWJ",
+    "\u200C": "ZWNJ",
+}
+
+BRACKET_PAIRS = (
+    ("(", ")"),
+    ("[", "]"),
+    ("{", "}"),
+    ("\u00AB", "\u00BB"),  # guillemets, common in Arabic typography
+)
+
+WORD_SPLIT_RE = re.compile(
+    "[\u0009-\u000D \u00A0\u060C\u061B\u061F.!?\u060D\u2010-\u2015\u2026]+"
+)
 
 
 def _strip_context(value: str) -> str:
@@ -215,13 +248,85 @@ def check_pair(
 
         if options.check_punctuation:
             prose = _strip_context(target)
-            for wrong, (name, codepoint) in WRONG_PUNCTUATION.items():
-                if wrong in prose:
+            for wrong, (name, codepoint, pattern) in WRONG_PUNCTUATION.items():
+                if pattern.search(prose):
                     add(
                         "punctuation.ascii",
                         Severity.WARNING,
                         f"ASCII {wrong!r} found in Arabic text; prefer the {name} ({codepoint})",
                     )
+
+        if options.check_punctuation_spacing:
+            prose = _strip_context(target)
+            if re.search(r"\s+[" + ARABIC_PUNCTUATION_CHARS + r"]", prose):
+                add(
+                    "punctuation.space_before",
+                    Severity.WARNING,
+                    "space before Arabic punctuation; it should bind to the preceding word",
+                )
+            if re.search(
+                "[" + ARABIC_PUNCTUATION_CHARS + "](?=[A-Za-z" + ARABIC_RANGES + "])",
+                prose,
+            ):
+                add(
+                    "punctuation.missing_space_after",
+                    Severity.WARNING,
+                    "missing space after Arabic punctuation",
+                )
+
+        if options.check_digits:
+            prose = _strip_context(target)
+            uses_arabic_indic = any(char in prose for char in ARABIC_INDIC_DIGITS)
+            uses_western = any(char in prose for char in ASCII_DIGITS)
+            if uses_arabic_indic and uses_western:
+                add(
+                    "digits.mixed_style",
+                    Severity.WARNING,
+                    "Arabic-Indic and Western digits are mixed in one string",
+                )
+
+        if options.check_brackets:
+            prose = _strip_context(target)
+            for opening, closing in BRACKET_PAIRS:
+                opened = prose.count(opening)
+                closed = prose.count(closing)
+                if opened != closed:
+                    add(
+                        "brackets.unbalanced",
+                        Severity.WARNING,
+                        f"unbalanced brackets: {opened}x {opening!r} vs {closed}x {closing!r}",
+                    )
+
+        if options.check_joiners:
+            found = sorted({name for char, name in JOINER_CHARS.items() if char in target})
+            if found:
+                add(
+                    "arabic.joiner_chars",
+                    Severity.WARNING,
+                    f"invisible joiner characters present: {', '.join(found)}",
+                )
+
+        if options.check_repeated_words:
+            words = [word for word in WORD_SPLIT_RE.split(_strip_context(target)) if word]
+            for first, second in zip(words, words[1:]):
+                if (
+                    first == second
+                    and len(first) >= 2
+                    and re.fullmatch("[" + ARABIC_RANGES + "]+", first)
+                ):
+                    add(
+                        "arabic.repeated_word",
+                        Severity.WARNING,
+                        f"word repeated twice in a row: {first!r}",
+                    )
+                    break
+
+        if options.check_double_space and re.search(r"\S {2,}\S", target):
+            add(
+                "arabic.double_space",
+                Severity.INFO,
+                "multiple consecutive spaces inside the string",
+            )
 
         if options.check_bidi_controls:
             found = sorted({name for char, name in BIDI_CONTROL_CHARS.items() if char in target})

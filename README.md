@@ -120,12 +120,55 @@ with code `2` and lists what is supported.
 | `punctuation.ascii` | warning | ASCII `,` `;` `?` inside Arabic prose |
 | `bidi.control_chars` | warning | Invisible U+202A–U+202E / U+2066–U+2069 / LRM / RLM |
 | `script.mixed_spacing` | warning | `عربيLatin` with no separating space |
+| `punctuation.space_before` | warning | Space before Arabic punctuation (`مرحبا ،`) |
+| `punctuation.missing_space_after` | warning | No space after Arabic punctuation (`مرحبا،بالعالم`) |
+| `digits.mixed_style` | warning | Arabic-Indic (`٢`) and Western (`3`) digits in one string |
+| `brackets.unbalanced` | warning | Unbalanced `()`, `[]`, `{}` or `«»` |
+| `arabic.joiner_chars` | warning | Invisible ZWJ / ZWNJ picked up from copy-paste |
+| `arabic.repeated_word` | warning | Same word twice in a row (`في في`) |
 | `extra.key` | warning | Key in the Arabic file but not in the source |
 | `arabic.tatweel` | info | Repeated tatweel (kashida) `ـ` characters |
 | `typography.ellipsis` | info | ASCII `...` instead of `…` |
+| `arabic.double_space` | info | Two or more consecutive spaces inside the string |
 
 Placeholders, URLs, e-mails, and markup are stripped before the Arabic prose
 checks run, so the linter does not false-positive on `%s` or on a URL.
+
+A comma between digits is treated as a thousands separator, not as punctuation,
+so `1,000` is never reported or rewritten.
+
+## Auto-fix
+
+Some issues have exactly one correct answer and can be fixed mechanically. The
+`--fix` flag rewrites those and leaves everything else alone:
+
+```bash
+# Preview the fixed file on stdout, original untouched
+arabic-l10n-qa locales/ar.json --fix
+
+# Rewrite the file in place
+arabic-l10n-qa locales/ar.json --fix --write
+```
+
+```text
+  arabic.double_space: 1
+  punctuation.ascii: 3
+Applied 4 fix(es) to locales/ar.json
+```
+
+What `--fix` will do:
+
+- ASCII `,` `;` `?` → Arabic `،` `؛` `؟` inside Arabic prose
+- remove whitespace before Arabic punctuation
+- collapse runs of internal spaces
+
+What it will never touch: URLs, e-mail addresses, `{placeholders}`, `%s`-style
+tokens, HTML tags, and `1,000`-style number grouping. Those segments are matched
+and skipped before any rewrite, because changing punctuation inside a URL query
+string would break the link.
+
+Rewording, diacritics, and digit style are deliberately left to a human.
+`--fix` currently supports JSON targets; other formats report a clear error.
 
 ## Exit codes
 

@@ -60,6 +60,46 @@ def build_parser() -> argparse.ArgumentParser:
         help="Disable mixed Arabic/Latin spacing checks.",
     )
     parser.add_argument(
+        "--no-digits",
+        action="store_true",
+        help="Disable mixed digit-style checks.",
+    )
+    parser.add_argument(
+        "--no-punct-spacing",
+        action="store_true",
+        help="Disable Arabic punctuation spacing checks.",
+    )
+    parser.add_argument(
+        "--no-brackets",
+        action="store_true",
+        help="Disable bracket-balance checks.",
+    )
+    parser.add_argument(
+        "--no-joiners",
+        action="store_true",
+        help="Disable zero-width joiner checks.",
+    )
+    parser.add_argument(
+        "--no-repeated-words",
+        action="store_true",
+        help="Disable repeated-word checks.",
+    )
+    parser.add_argument(
+        "--no-double-space",
+        action="store_true",
+        help="Disable internal double-space checks.",
+    )
+    parser.add_argument(
+        "--fix",
+        action="store_true",
+        help="Apply safe fixes; prints the result unless --write is given (JSON only).",
+    )
+    parser.add_argument(
+        "--write",
+        action="store_true",
+        help="With --fix, overwrite the target file in place instead of printing.",
+    )
+    parser.add_argument(
         "--ignore-untranslated",
         action="append",
         default=[],
@@ -69,9 +109,59 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def run_fixes(target: str, write: bool) -> int:
+    """Apply safe fixes to a JSON file, printing or rewriting the result."""
+    import json
+    from pathlib import Path
+
+    from .fixes import fix_tree
+
+    path = Path(target)
+    if path.suffix.lower() not in (".json", ".jsonc"):
+        print(
+            f"error: --fix supports JSON targets only (got {path.suffix or 'no extension'}).",
+            file=sys.stderr,
+        )
+        return 2
+
+    try:
+        data = json.loads(path.read_text(encoding="utf-8-sig"))
+    except FileNotFoundError:
+        print(f"error: file not found: {target}", file=sys.stderr)
+        return 2
+    except Exception as exc:  # noqa: BLE001
+        print(f"error: could not parse {target}: {exc}", file=sys.stderr)
+        return 2
+
+    fixed, counts = fix_tree(data)
+    total = sum(counts.values())
+    rendered = json.dumps(fixed, ensure_ascii=False, indent=2) + "\n"
+
+    if write:
+        if total == 0:
+            print("No safe fixes applied; file left unchanged.")
+            return 0
+        path.write_text(rendered, encoding="utf-8")
+        print(f"Applied {total} fix(es) to {target}")
+    else:
+        print(rendered, end="")
+
+    if total == 0:
+        print("No safe fixes applied.", file=sys.stderr)
+        return 0
+
+    sys.stdout.flush()
+    for code, count in sorted(counts.items()):
+        print(f"  {code}: {count}", file=sys.stderr)
+    return 0
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    if args.fix:
+        return run_fixes(args.target, args.write)
 
     try:
         embedded_source, target = load_pair_file(args.target)
@@ -103,6 +193,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         check_punctuation=not args.no_punctuation,
         check_bidi_controls=not args.no_bidi,
         check_mixed_script_spacing=not args.no_mixed_spacing,
+        check_digits=not args.no_digits,
+        check_punctuation_spacing=not args.no_punct_spacing,
+        check_brackets=not args.no_brackets,
+        check_joiners=not args.no_joiners,
+        check_repeated_words=not args.no_repeated_words,
+        check_double_space=not args.no_double_space,
         ignore_untranslated_values=tuple(args.ignore_untranslated),
     )
 

@@ -1,6 +1,7 @@
 """arabic-l10n-qa: a small QA linter for Arabic localization files."""
 
 from .checks import CheckOptions, Issue, Severity, check_entry, check_pair
+from .fixes import fix_mapping, fix_tree, fix_value
 from .formats import (
     UnsupportedFormatError,
     flatten,
@@ -20,6 +21,9 @@ __all__ = [
     "check_entry",
     "check_pair",
     "flatten",
+    "fix_mapping",
+    "fix_tree",
+    "fix_value",
     "format_report",
     "load_any_file",
     "load_file",

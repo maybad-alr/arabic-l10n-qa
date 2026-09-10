@@ -1,0 +1,9 @@
+{
+  "app.greeting": "مرحبا, بالعالم",
+  "app.question": "هل أنت متأكد?",
+  "app.typo": "مرحبا  بالعالم",
+  "app.price": "السعر 1,000 دولار",
+  "app.link": "انظر https://example.com/a?b=1",
+  "app.note": "استخدم {count} عناصر, ثم أكمل",
+  "app.clean": "نص عربي سليم تمامًا"
+}
